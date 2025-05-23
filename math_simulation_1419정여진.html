@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>공수2 심화탐구보고서</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
+    canvas { background: #fff; border: 1px solid #aaa; display: block; margin-top: 10px; }
+    label, select, button { margin-right: 15px; font-size: 1em; }
+  </style>
+</head>
+<body>
+  <h2>1419정여진 공통수학2 심화탐구보고서 [하이퍼사이클로이드 시뮬레이터]</h2>
+
+  <div>
+    <label>고정기어 R: <input id="sliderR" type="range" min="50" max="250" value="150"><span id="valR">150</span></label>
+    <label>이동기어 r: <input id="sliderr" type="range" min="20" max="200" value="60"><span id="valr">60</span></label>
+    <label>점까지 거리 d: <input id="sliderd" type="range" min="10" max="250" value="80"><span id="vald">80</span></label>
+    <label>속도: <input id="sliderSpeed" type="range" min="1" max="100" value="10"><span id="valSpeed">1.0</span>x</label>
+    <label>곡선 색상:
+      <select id="colorSelect">
+        <option value="#3b3" selected>녹색</option>
+        <option value="#f33">빨강</option>
+        <option value="#00f">파랑</option>
+        <option value="#000">검정</option>
+        <option value="#ff0">노랑</option>
+      </select>
+    </label>
+    <button id="toggleBtn">⏸️정지</button>
+  </div>
+
+  <canvas id="hypoCanvas" width="800" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('hypoCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let R = 150, r = 60, d = 80;
+    let speed = 0.01;
+    let center = {x: 400, y: 300};
+    let movingCenter = {x: center.x + R - r, y: center.y};
+    let theta = 0;
+    let path = [];
+    let isRunning = true;
+    let color = "#3b3";
+    let startPoint = null;
+
+    function getHypoPoint(t) {
+      const k = (R - r) / r;
+      const x = center.x + (R - r) * Math.cos(t) + d * Math.cos(k * t);
+      const y = center.y + (R - r) * Math.sin(t) - d * Math.sin(k * t);
+      return {x, y};
+    }
+
+    function resetPath() {
+      theta = 0;
+      path = [];
+      startPoint = getHypoPoint(0);
+    }
+
+    function updateSliderDisplays() {
+      document.getElementById('valR').textContent = R;
+      document.getElementById('valr').textContent = r;
+      document.getElementById('vald').textContent = d;
+      document.getElementById('valSpeed').textContent = (speed / 0.01).toFixed(1);
+    }
+
+    document.getElementById('sliderR').oninput = function() {
+      R = Math.max(parseInt(this.value), r + 1);
+      this.value = R;
+      updateSliderDisplays();
+      resetPath();
+    };
+
+    document.getElementById('sliderr').oninput = function() {
+      r = Math.min(parseInt(this.value), R - 1);
+      this.value = r;
+      updateSliderDisplays();
+      resetPath();
+    };
+
+    document.getElementById('sliderd').oninput = function() {
+      d = parseInt(this.value);
+      updateSliderDisplays();
+      resetPath();
+    };
+
+    document.getElementById('sliderSpeed').oninput = function () {
+      speed = parseInt(this.value) * 0.001;
+      updateSliderDisplays();
+    };
+
+    document.getElementById('colorSelect').onchange = function () {
+      color = this.value;
+    };
+
+    document.getElementById('toggleBtn').onclick = function () {
+      isRunning = !isRunning;
+      this.textContent = isRunning ? "⏸️ 정지" : "▶️ 재생";
+    };
+
+    function draw() {
+      if (isRunning) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath(); ctx.arc(center.x, center.y, R, 0, Math.PI * 2); ctx.strokeStyle = '#888'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(movingCenter.x, movingCenter.y, r, 0, Math.PI * 2); ctx.strokeStyle = '#0077ff'; ctx.stroke();
+
+        const k = (R - r) / r;
+        const px = movingCenter.x + d * Math.cos(k * theta);
+        const py = movingCenter.y - d * Math.sin(k * theta);
+        ctx.beginPath(); ctx.moveTo(movingCenter.x, movingCenter.y); ctx.lineTo(px, py); ctx.strokeStyle = '#f33'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI * 2); ctx.fillStyle = '#f33'; ctx.fill();
+
+        const p = getHypoPoint(theta);
+        path.push(p);
+        ctx.beginPath(); ctx.moveTo(path[0].x, path[0].y);
+        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        movingCenter.x = center.x + (R - r) * Math.cos(theta);
+        movingCenter.y = center.y + (R - r) * Math.sin(theta);
+
+        theta += speed;
+
+        // 자동 초기화 조건: 처음 위치와 다시 만나면
+        if (startPoint && path.length > 50) {
+          const dx = p.x - startPoint.x;
+          const dy = p.y - startPoint.y;
+          if (dx * dx + dy * dy < 2) {
+            resetPath();
+          }
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    updateSliderDisplays();
+    resetPath();
+    draw();
+  </script>
+</body>
+</html>
